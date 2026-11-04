@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_UniDesk"
+  targetNamespace="http://unidesk.local/bpmn">
+
+  <bpmn:process id="Process_UniDesk_General" name="UniDesk - Flujo General de Atención de Tickets" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Usuario" name="Usuario solicitante">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Detectar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Registrar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CompletarInfo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ValidarSolucion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Conforme</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Encuesta</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_MesaAyuda" name="Mesa de ayuda">
+        <bpmn:flowNodeRef>Task_Revisar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_InfoCompleta</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SolicitarInfo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Clasificar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Tipo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AsignarPrioridad</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AsignarArea</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AsignarEspecialista</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Especialista" name="Especialista TI">
+        <bpmn:flowNodeRef>Task_RevisarTicket</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_IniciarAtencion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_PuedeResolver</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RegistrarSolucion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_MarcarResuelto</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Coordinador" name="Coordinador / Aprobador">
+        <bpmn:flowNodeRef>Task_Escalar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Reasignar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CerrarTicket</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_1" name="Inicio"/>
+    <bpmn:task id="Task_Detectar" name="Detectar necesidad o problema"/>
+    <bpmn:task id="Task_Registrar" name="Registrar ticket"/>
+    <bpmn:task id="Task_Revisar" name="Revisar ticket"/>
+    <bpmn:exclusiveGateway id="Gateway_InfoCompleta" name="¿Información completa?"/>
+    <bpmn:task id="Task_SolicitarInfo" name="Solicitar información"/>
+    <bpmn:task id="Task_CompletarInfo" name="Completar información"/>
+    <bpmn:task id="Task_Clasificar" name="Clasificar ticket"/>
+    <bpmn:exclusiveGateway id="Gateway_Tipo" name="¿Tipo de ticket?"/>
+    <bpmn:task id="Task_AsignarPrioridad" name="Asignar prioridad"/>
+    <bpmn:task id="Task_AsignarArea" name="Asignar área"/>
+    <bpmn:task id="Task_AsignarEspecialista" name="Asignar especialista"/>
+    <bpmn:task id="Task_RevisarTicket" name="Revisar ticket asignado"/>
+    <bpmn:task id="Task_IniciarAtencion" name="Iniciar atención"/>
+    <bpmn:exclusiveGateway id="Gateway_PuedeResolver" name="¿Puede resolver?"/>
+    <bpmn:task id="Task_Escalar" name="Escalar ticket"/>
+    <bpmn:task id="Task_Reasignar" name="Reasignar especialista"/>
+    <bpmn:task id="Task_RegistrarSolucion" name="Registrar solución"/>
+    <bpmn:task id="Task_MarcarResuelto" name="Marcar como resuelto"/>
+    <bpmn:task id="Task_ValidarSolucion" name="Validar solución"/>
+    <bpmn:exclusiveGateway id="Gateway_Conforme" name="¿Solución conforme?"/>
+    <bpmn:task id="Task_CerrarTicket" name="Cerrar ticket"/>
+    <bpmn:task id="Task_Encuesta" name="Responder encuesta de satisfacción"/>
+    <bpmn:endEvent id="EndEvent_1" name="Fin"/>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Detectar"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Detectar" targetRef="Task_Registrar"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Registrar" targetRef="Task_Revisar"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Revisar" targetRef="Gateway_InfoCompleta"/>
+    <bpmn:sequenceFlow id="Flow_5_yes" name="Sí" sourceRef="Gateway_InfoCompleta" targetRef="Task_Clasificar"/>
+    <bpmn:sequenceFlow id="Flow_5_no" name="No" sourceRef="Gateway_InfoCompleta" targetRef="Task_SolicitarInfo"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_SolicitarInfo" targetRef="Task_CompletarInfo"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_CompletarInfo" targetRef="Task_Revisar"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_Clasificar" targetRef="Gateway_Tipo"/>
+    <bpmn:sequenceFlow id="Flow_9_req" name="REQ" sourceRef="Gateway_Tipo" targetRef="Task_AsignarPrioridad"/>
+    <bpmn:sequenceFlow id="Flow_9_inc" name="INC" sourceRef="Gateway_Tipo" targetRef="Task_AsignarPrioridad"/>
+    <bpmn:sequenceFlow id="Flow_9_crq" name="CRQ" sourceRef="Gateway_Tipo" targetRef="Task_AsignarPrioridad"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_AsignarPrioridad" targetRef="Task_AsignarArea"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_AsignarArea" targetRef="Task_AsignarEspecialista"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_AsignarEspecialista" targetRef="Task_RevisarTicket"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_RevisarTicket" targetRef="Task_IniciarAtencion"/>
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_IniciarAtencion" targetRef="Gateway_PuedeResolver"/>
+    <bpmn:sequenceFlow id="Flow_15_yes" name="Sí" sourceRef="Gateway_PuedeResolver" targetRef="Task_RegistrarSolucion"/>
+    <bpmn:sequenceFlow id="Flow_15_no" name="No" sourceRef="Gateway_PuedeResolver" targetRef="Task_Escalar"/>
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="Task_Escalar" targetRef="Task_Reasignar"/>
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="Task_Reasignar" targetRef="Task_RevisarTicket"/>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="Task_RegistrarSolucion" targetRef="Task_MarcarResuelto"/>
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="Task_MarcarResuelto" targetRef="Task_ValidarSolucion"/>
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="Task_ValidarSolucion" targetRef="Gateway_Conforme"/>
+    <bpmn:sequenceFlow id="Flow_21_yes" name="Sí" sourceRef="Gateway_Conforme" targetRef="Task_CerrarTicket"/>
+    <bpmn:sequenceFlow id="Flow_21_no" name="No - Reabrir" sourceRef="Gateway_Conforme" targetRef="Task_RevisarTicket"/>
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="Task_CerrarTicket" targetRef="Task_Encuesta"/>
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="Task_Encuesta" targetRef="EndEvent_1"/>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_UniDesk_General">
+
+      <bpmndi:BPMNShape id="Lane_Usuario_di" bpmnElement="Lane_Usuario" isHorizontal="true">
+        <dc:Bounds x="100" y="100" width="2500" height="180"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_MesaAyuda_di" bpmnElement="Lane_MesaAyuda" isHorizontal="true">
+        <dc:Bounds x="100" y="280" width="2500" height="180"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Especialista_di" bpmnElement="Lane_Especialista" isHorizontal="true">
+        <dc:Bounds x="100" y="460" width="2500" height="180"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Coordinador_di" bpmnElement="Lane_Coordinador" isHorizontal="true">
+        <dc:Bounds x="100" y="640" width="2500" height="180"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="150" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Detectar_di" bpmnElement="Task_Detectar">
+        <dc:Bounds x="220" y="145" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Registrar_di" bpmnElement="Task_Registrar">
+        <dc:Bounds x="400" y="145" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Revisar_di" bpmnElement="Task_Revisar">
+        <dc:Bounds x="580" y="325" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_InfoCompleta_di" bpmnElement="Gateway_InfoCompleta" isMarkerVisible="true">
+        <dc:Bounds x="760" y="340" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SolicitarInfo_di" bpmnElement="Task_SolicitarInfo">
+        <dc:Bounds x="850" y="305" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CompletarInfo_di" bpmnElement="Task_CompletarInfo">
+        <dc:Bounds x="850" y="145" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Clasificar_di" bpmnElement="Task_Clasificar">
+        <dc:Bounds x="1030" y="325" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Tipo_di" bpmnElement="Gateway_Tipo" isMarkerVisible="true">
+        <dc:Bounds x="1200" y="340" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AsignarPrioridad_di" bpmnElement="Task_AsignarPrioridad">
+        <dc:Bounds x="1300" y="325" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AsignarArea_di" bpmnElement="Task_AsignarArea">
+        <dc:Bounds x="1480" y="325" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AsignarEspecialista_di" bpmnElement="Task_AsignarEspecialista">
+        <dc:Bounds x="1650" y="325" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RevisarTicket_di" bpmnElement="Task_RevisarTicket">
+        <dc:Bounds x="1840" y="505" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IniciarAtencion_di" bpmnElement="Task_IniciarAtencion">
+        <dc:Bounds x="2030" y="505" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_PuedeResolver_di" bpmnElement="Gateway_PuedeResolver" isMarkerVisible="true">
+        <dc:Bounds x="2210" y="520" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Escalar_di" bpmnElement="Task_Escalar">
+        <dc:Bounds x="2320" y="685" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Reasignar_di" bpmnElement="Task_Reasignar">
+        <dc:Bounds x="2470" y="685" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RegistrarSolucion_di" bpmnElement="Task_RegistrarSolucion">
+        <dc:Bounds x="2320" y="505" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_MarcarResuelto_di" bpmnElement="Task_MarcarResuelto">
+        <dc:Bounds x="2510" y="505" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ValidarSolucion_di" bpmnElement="Task_ValidarSolucion">
+        <dc:Bounds x="2710" y="145" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Conforme_di" bpmnElement="Gateway_Conforme" isMarkerVisible="true">
+        <dc:Bounds x="2900" y="160" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CerrarTicket_di" bpmnElement="Task_CerrarTicket">
+        <dc:Bounds x="3010" y="685" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Encuesta_di" bpmnElement="Task_Encuesta">
+        <dc:Bounds x="3190" y="145" width="170" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="3410" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence flow edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1"><di:waypoint x="186" y="188"/><di:waypoint x="220" y="185"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2"><di:waypoint x="360" y="185"/><di:waypoint x="400" y="185"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3"><di:waypoint x="530" y="185"/><di:waypoint x="560" y="185"/><di:waypoint x="560" y="365"/><di:waypoint x="580" y="365"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4"><di:waypoint x="710" y="365"/><di:waypoint x="760" y="365"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_yes_di" bpmnElement="Flow_5_yes"><di:waypoint x="810" y="365"/><di:waypoint x="1030" y="365"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_no_di" bpmnElement="Flow_5_no"><di:waypoint x="785" y="390"/><di:waypoint x="785" y="420"/><di:waypoint x="920" y="420"/><di:waypoint x="920" y="385"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6"><di:waypoint x="920" y="305"/><di:waypoint x="920" y="225"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7"><di:waypoint x="850" y="185"/><di:waypoint x="645" y="185"/><di:waypoint x="645" y="325"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8"><di:waypoint x="1160" y="365"/><di:waypoint x="1200" y="365"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_req_di" bpmnElement="Flow_9_req"><di:waypoint x="1250" y="355"/><di:waypoint x="1300" y="355"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_inc_di" bpmnElement="Flow_9_inc"><di:waypoint x="1250" y="365"/><di:waypoint x="1300" y="365"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_crq_di" bpmnElement="Flow_9_crq"><di:waypoint x="1250" y="375"/><di:waypoint x="1300" y="375"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10"><di:waypoint x="1440" y="365"/><di:waypoint x="1480" y="365"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11"><di:waypoint x="1610" y="365"/><di:waypoint x="1650" y="365"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12"><di:waypoint x="1800" y="365"/><di:waypoint x="1820" y="365"/><di:waypoint x="1820" y="545"/><di:waypoint x="1840" y="545"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13"><di:waypoint x="1990" y="545"/><di:waypoint x="2030" y="545"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14"><di:waypoint x="2170" y="545"/><di:waypoint x="2210" y="545"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_yes_di" bpmnElement="Flow_15_yes"><di:waypoint x="2260" y="545"/><di:waypoint x="2320" y="545"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_no_di" bpmnElement="Flow_15_no"><di:waypoint x="2235" y="570"/><di:waypoint x="2235" y="725"/><di:waypoint x="2320" y="725"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16"><di:waypoint x="2440" y="725"/><di:waypoint x="2470" y="725"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17"><di:waypoint x="2530" y="685"/><di:waypoint x="2530" y="650"/><di:waypoint x="1915" y="650"/><di:waypoint x="1915" y="585"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18"><di:waypoint x="2470" y="545"/><di:waypoint x="2510" y="545"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19"><di:waypoint x="2660" y="545"/><di:waypoint x="2680" y="545"/><di:waypoint x="2680" y="185"/><di:waypoint x="2710" y="185"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20"><di:waypoint x="2860" y="185"/><di:waypoint x="2900" y="185"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_yes_di" bpmnElement="Flow_21_yes"><di:waypoint x="2950" y="185"/><di:waypoint x="2980" y="185"/><di:waypoint x="2980" y="725"/><di:waypoint x="3010" y="725"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_no_di" bpmnElement="Flow_21_no"><di:waypoint x="2925" y="210"/><di:waypoint x="2925" y="610"/><di:waypoint x="1915" y="610"/><di:waypoint x="1915" y="585"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22"><di:waypoint x="3140" y="725"/><di:waypoint x="3170" y="725"/><di:waypoint x="3170" y="185"/><di:waypoint x="3190" y="185"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23"><di:waypoint x="3360" y="185"/><di:waypoint x="3410" y="188"/></bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

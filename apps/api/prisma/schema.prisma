@@ -1,0 +1,447 @@
+// ==============================================================
+// TIDESK - UNIVERSIDAD NACIONAL DE CAÑETE
+// ESQUEMA MAESTRO DE PRISMA ORM (POSTGRESQL 17)
+// ==============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------------------------------------------------
+// 1. ESTRUCTURA INSTITUCIONAL
+// --------------------------------------------------------------
+
+model Sede {
+  idSede     Int       @id @default(autoincrement()) @map("id_sede")
+  nombre     String    @db.VarChar(150) @map("nombre")
+  direccion  String?   @db.VarChar(250) @map("direccion")
+  estado     Boolean?  @default(true) @map("estado")
+  createdAt  DateTime? @default(now()) @db.Timestamp() @map("created_at")
+
+  usuarios   Usuario[]
+
+  @@map("sedes")
+}
+
+model Facultad {
+  idFacultad Int       @id @default(autoincrement()) @map("id_facultad")
+  nombre     String    @db.VarChar(150) @map("nombre")
+  estado     Boolean?  @default(true) @map("estado")
+  createdAt  DateTime? @default(now()) @db.Timestamp() @map("created_at")
+
+  carreras   Carrera[]
+  usuarios   Usuario[]
+
+  @@map("facultades")
+}
+
+model Carrera {
+  idCarrera  Int       @id @default(autoincrement()) @map("id_carrera")
+  idFacultad Int       @map("id_facultad")
+  nombre     String    @db.VarChar(150) @map("nombre")
+  estado     Boolean?  @default(true) @map("estado")
+  createdAt  DateTime? @default(now()) @db.Timestamp() @map("created_at")
+
+  facultad   Facultad  @relation(fields: [idFacultad], references: [idFacultad])
+  usuarios   Usuario[]
+
+  @@map("carreras")
+}
+
+model Area {
+  idArea      Int        @id @default(autoincrement()) @map("id_area")
+  nombre      String     @db.VarChar(150) @map("nombre")
+  descripcion String?    @db.VarChar(250) @map("descripcion")
+  estado      Boolean?   @default(true) @map("estado")
+  createdAt   DateTime?  @default(now()) @db.Timestamp() @map("created_at")
+
+  usuarios    Usuario[]
+  servicios   Servicio[]
+  tickets     Ticket[]
+
+  @@map("areas")
+}
+
+// --------------------------------------------------------------
+// 2. ROLES Y USUARIOS (RBAC)
+// --------------------------------------------------------------
+
+model Rol {
+  idRol       Int       @id @default(autoincrement()) @map("id_rol")
+  nombre      String    @unique @db.VarChar(80) @map("nombre")
+  descripcion String?   @db.VarChar(250) @map("descripcion")
+  estado      Boolean?  @default(true) @map("estado")
+
+  usuarios    Usuario[]
+
+  @@map("roles")
+}
+
+model Usuario {
+  idUsuario    Int       @id @default(autoincrement()) @map("id_usuario")
+  codigo       String?   @unique @db.VarChar(30) @map("codigo")
+  nombres      String    @db.VarChar(120) @map("nombres")
+  apellidos    String    @db.VarChar(120) @map("apellidos")
+  correo       String    @unique @db.VarChar(180) @map("correo")
+  passwordHash String    @db.VarChar(255) @map("password_hash")
+  telefono     String?   @db.VarChar(30) @map("telefono")
+  idRol        Int       @map("id_rol")
+  idSede       Int?      @map("id_sede")
+  idFacultad   Int?      @map("id_facultad")
+  idCarrera    Int?      @map("id_carrera")
+  idArea       Int?      @map("id_area")
+  estado       Boolean?  @default(true) @map("estado")
+  ultimoAcceso DateTime? @db.Timestamp() @map("ultimo_acceso")
+  createdAt    DateTime? @default(now()) @db.Timestamp() @map("created_at")
+  updatedAt    DateTime? @updatedAt @db.Timestamp() @map("updated_at")
+
+  rol          Rol       @relation(fields: [idRol], references: [idRol])
+  sede         Sede?     @relation(fields: [idSede], references: [idSede])
+  facultad     Facultad? @relation(fields: [idFacultad], references: [idFacultad])
+  carrera      Carrera?  @relation(fields: [idCarrera], references: [idCarrera])
+  area         Area?     @relation(fields: [idArea], references: [idArea])
+
+  ticketsSolicitados      Ticket[]          @relation("SolicitanteTicket")
+  asignacionesRecibidas   Asignacion[]      @relation("EspecialistaAsignacion")
+  asignacionesRealizadas  Asignacion[]      @relation("AsignadorAsignacion")
+  comentarios             Comentario[]
+  adjuntos                Adjunto[]
+  historial               HistorialTicket[]
+  crqAprobaciones         CrqAprobacion[]
+  notificaciones          Notificacion[]
+  encuestas               Encuesta[]
+
+  @@map("usuarios")
+}
+
+// --------------------------------------------------------------
+// 3. CATÁLOGOS OPERATIVOS DE TICKETS
+// --------------------------------------------------------------
+
+model TipoTicket {
+  idTipoTicket Int           @id @default(autoincrement()) @map("id_tipo_ticket")
+  codigo       String        @unique @db.VarChar(10) @map("codigo") // REQ, INC, CRQ
+  nombre       String        @db.VarChar(80) @map("nombre")
+  descripcion  String?       @db.VarChar(250) @map("descripcion")
+  estado       Boolean?      @default(true) @map("estado")
+
+  tickets      Ticket[]
+  politicasSla PoliticaSla[]
+
+  @@map("tipos_ticket")
+}
+
+model Prioridad {
+  idPrioridad Int           @id @default(autoincrement()) @map("id_prioridad")
+  nombre      String        @db.VarChar(50) @map("nombre")
+  nivel       Int           @map("nivel") // 1: Crítica, 2: Alta, 3: Media, 4: Baja
+  descripcion String?       @db.VarChar(250) @map("descripcion")
+  estado      Boolean?      @default(true) @map("estado")
+
+  tickets     Ticket[]
+  politicasSla PoliticaSla[]
+
+  @@map("prioridades")
+}
+
+model Estado {
+  idEstado    Int      @id @default(autoincrement()) @map("id_estado")
+  nombre      String   @db.VarChar(80) @map("nombre")
+  descripcion String?  @db.VarChar(250) @map("descripcion")
+  estado      Boolean? @default(true) @map("estado")
+
+  tickets     Ticket[]
+
+  @@map("estados")
+}
+
+model Categoria {
+  idCategoria   Int            @id @default(autoincrement()) @map("id_categoria")
+  nombre        String         @db.VarChar(120) @map("nombre")
+  descripcion   String?        @db.VarChar(250) @map("descripcion")
+  estado        Boolean?       @default(true) @map("estado")
+
+  subcategorias Subcategoria[]
+  tickets       Ticket[]
+
+  @@map("categorias")
+}
+
+model Subcategoria {
+  idSubcategoria Int       @id @default(autoincrement()) @map("id_subcategoria")
+  idCategoria    Int       @map("id_categoria")
+  nombre         String    @db.VarChar(120) @map("nombre")
+  descripcion    String?   @db.VarChar(250) @map("descripcion")
+  estado         Boolean?  @default(true) @map("estado")
+
+  categoria      Categoria @relation(fields: [idCategoria], references: [idCategoria])
+  tickets        Ticket[]
+
+  @@map("subcategorias")
+}
+
+model Servicio {
+  idServicio  Int      @id @default(autoincrement()) @map("id_servicio")
+  idArea      Int      @map("id_area")
+  nombre      String   @db.VarChar(150) @map("nombre")
+  descripcion String?  @db.VarChar(250) @map("descripcion")
+  estado      Boolean? @default(true) @map("estado")
+
+  area        Area     @relation(fields: [idArea], references: [idArea])
+  tickets     Ticket[]
+
+  @@map("servicios")
+}
+
+// --------------------------------------------------------------
+// 4. TABLA CENTRAL DE TICKETS Y SEGUIMIENTO
+// --------------------------------------------------------------
+
+model Ticket {
+  idTicket             Int               @id @default(autoincrement()) @map("id_ticket")
+  codigo               String            @unique @db.VarChar(30) @map("codigo")
+  idTipoTicket         Int               @map("id_tipo_ticket")
+  idUsuarioSolicitante Int               @map("id_usuario_solicitante")
+  idArea               Int               @map("id_area")
+  idServicio           Int?              @map("id_servicio")
+  idCategoria          Int?              @map("id_categoria")
+  idSubcategoria       Int?              @map("id_subcategoria")
+  idPrioridad          Int               @map("id_prioridad")
+  idEstado             Int               @map("id_estado")
+  titulo               String            @db.VarChar(200) @map("titulo")
+  descripcion          String            @db.Text @map("descripcion")
+  fechaCreacion        DateTime          @default(now()) @db.Timestamp() @map("fecha_creacion")
+  fechaAsignacion      DateTime?         @db.Timestamp() @map("fecha_asignacion")
+  fechaInicioAtencion  DateTime?         @db.Timestamp() @map("fecha_inicio_atencion")
+  fechaResolucion      DateTime?         @db.Timestamp() @map("fecha_resolucion")
+  fechaCierre          DateTime?         @db.Timestamp() @map("fecha_cierre")
+  solucion             String?           @db.Text @map("solucion")
+  createdAt            DateTime?         @default(now()) @db.Timestamp() @map("created_at")
+  updatedAt            DateTime?         @updatedAt @db.Timestamp() @map("updated_at")
+
+  tipoTicket           TipoTicket        @relation(fields: [idTipoTicket], references: [idTipoTicket])
+  solicitante          Usuario           @relation("SolicitanteTicket", fields: [idUsuarioSolicitante], references: [idUsuario])
+  area                 Area              @relation(fields: [idArea], references: [idArea])
+  servicio             Servicio?         @relation(fields: [idServicio], references: [idServicio])
+  categoria            Categoria?        @relation(fields: [idCategoria], references: [idCategoria])
+  subcategoria         Subcategoria?     @relation(fields: [idSubcategoria], references: [idSubcategoria])
+  prioridad            Prioridad         @relation(fields: [idPrioridad], references: [idPrioridad])
+  estado               Estado            @relation(fields: [idEstado], references: [idEstado])
+
+  asignaciones         Asignacion[]
+  comentarios          Comentario[]
+  adjuntos             Adjunto[]
+  historial            HistorialTicket[]
+  ticketSla            TicketSla[]
+  crqDetalle           CrqDetalle?
+  notificaciones       Notificacion[]
+  encuesta             Encuesta?
+
+  @@index([idTipoTicket, idEstado, fechaCreacion])
+  @@index([idArea, fechaCreacion])
+  @@index([idUsuarioSolicitante])
+  @@map("tickets")
+}
+
+model Asignacion {
+  idAsignacion       Int       @id @default(autoincrement()) @map("id_asignacion")
+  idTicket           Int       @map("id_ticket")
+  idEspecialista     Int       @map("id_especialista")
+  asignadoPor        Int?      @map("asignado_por")
+  fechaAsignacion    DateTime  @default(now()) @db.Timestamp() @map("fecha_asignacion")
+  fechaFin           DateTime? @db.Timestamp() @map("fecha_fin")
+  motivoReasignacion String?   @db.VarChar(250) @map("motivo_reasignacion")
+  activo             Boolean?  @default(true) @map("activo")
+
+  ticket             Ticket    @relation(fields: [idTicket], references: [idTicket])
+  especialista       Usuario   @relation("EspecialistaAsignacion", fields: [idEspecialista], references: [idUsuario])
+  asignador          Usuario?  @relation("AsignadorAsignacion", fields: [asignadoPor], references: [idUsuario])
+
+  @@index([idTicket, activo])
+  @@index([idEspecialista, activo])
+  @@map("asignaciones")
+}
+
+model Comentario {
+  idComentario      Int       @id @default(autoincrement()) @map("id_comentario")
+  idTicket          Int       @map("id_ticket")
+  idUsuario         Int       @map("id_usuario")
+  comentario        String    @db.Text @map("comentario")
+  comentarioInterno Boolean?  @default(false) @map("comentario_interno")
+  createdAt         DateTime  @default(now()) @db.Timestamp() @map("created_at")
+
+  ticket            Ticket    @relation(fields: [idTicket], references: [idTicket])
+  usuario           Usuario   @relation(fields: [idUsuario], references: [idUsuario])
+
+  @@index([idTicket, createdAt])
+  @@map("comentarios")
+}
+
+model Adjunto {
+  idAdjunto     Int       @id @default(autoincrement()) @map("id_adjunto")
+  idTicket      Int       @map("id_ticket")
+  idUsuario     Int       @map("id_usuario")
+  nombreArchivo String    @db.VarChar(255) @map("nombre_archivo")
+  rutaArchivo   String    @db.VarChar(500) @map("ruta_archivo")
+  tipoArchivo   String?   @db.VarChar(100) @map("tipo_archivo")
+  tamanio       BigInt?   @map("tamanio")
+  createdAt     DateTime? @default(now()) @db.Timestamp() @map("created_at")
+
+  ticket        Ticket    @relation(fields: [idTicket], references: [idTicket])
+  usuario       Usuario   @relation(fields: [idUsuario], references: [idUsuario])
+
+  @@index([idTicket])
+  @@map("adjuntos")
+}
+
+model HistorialTicket {
+  idHistorial     Int      @id @default(autoincrement()) @map("id_historial")
+  idTicket        Int      @map("id_ticket")
+  idUsuario       Int      @map("id_usuario")
+  accion          String   @db.VarChar(150) @map("accion")
+  campoModificado String?  @db.VarChar(100) @map("campo_modificado")
+  valorAnterior   String?  @db.Text @map("valor_anterior")
+  valorNuevo      String?  @db.Text @map("valor_nuevo")
+  fecha           DateTime @default(now()) @db.Timestamp() @map("fecha")
+
+  ticket          Ticket   @relation(fields: [idTicket], references: [idTicket])
+  usuario         Usuario  @relation(fields: [idUsuario], references: [idUsuario])
+
+  @@index([idTicket, fecha])
+  @@map("historial_ticket")
+}
+
+// --------------------------------------------------------------
+// 5. ACUERDOS DE NIVEL DE SERVICIO (SLA)
+// --------------------------------------------------------------
+
+model PoliticaSla {
+  idSla                     Int         @id @default(autoincrement()) @map("id_sla")
+  idTipoTicket              Int?        @map("id_tipo_ticket")
+  idPrioridad               Int         @map("id_prioridad")
+  nombre                    String      @db.VarChar(120) @map("nombre")
+  tiempoPrimeraRespuestaMin Int         @map("tiempo_primera_respuesta_min")
+  tiempoResolucionMin       Int         @map("tiempo_resolucion_min")
+  estado                    Boolean?    @default(true) @map("estado")
+
+  tipoTicket                TipoTicket? @relation(fields: [idTipoTicket], references: [idTipoTicket])
+  prioridad                 Prioridad   @relation(fields: [idPrioridad], references: [idPrioridad])
+  ticketSlas                TicketSla[]
+
+  @@map("politicas_sla")
+}
+
+model TicketSla {
+  idTicketSla            Int         @id @default(autoincrement()) @map("id_ticket_sla")
+  idTicket               Int         @map("id_ticket")
+  idSla                  Int         @map("id_sla")
+  fechaLimiteRespuesta   DateTime?   @db.Timestamp() @map("fecha_limite_respuesta")
+  fechaLimiteResolucion  DateTime?   @db.Timestamp() @map("fecha_limite_resolucion")
+  fechaRespuestaReal     DateTime?   @db.Timestamp() @map("fecha_respuesta_real")
+  fechaResolucionReal    DateTime?   @db.Timestamp() @map("fecha_resolucion_real")
+  cumplioRespuesta       Boolean?    @map("cumplio_respuesta")
+  cumplioResolucion      Boolean?    @map("cumplio_resolucion")
+
+  ticket                 Ticket      @relation(fields: [idTicket], references: [idTicket])
+  sla                    PoliticaSla @relation(fields: [idSla], references: [idSla])
+
+  @@index([idTicket])
+  @@index([fechaLimiteResolucion, cumplioResolucion])
+  @@map("ticket_sla")
+}
+
+// --------------------------------------------------------------
+// 6. GESTIÓN DE CAMBIOS (CRQ)
+// --------------------------------------------------------------
+
+model CrqDetalle {
+  idCrq              Int              @id @default(autoincrement()) @map("id_crq")
+  idTicket           Int              @unique @map("id_ticket")
+  tipoTrabajo        String           @db.VarChar(120) @map("tipo_trabajo")
+  motivo             String?          @db.Text @map("motivo")
+  descripcionTecnica String?          @db.Text @map("descripcion_tecnica")
+  fechaProgramada    DateTime?        @db.Date @map("fecha_programada")
+  horaInicio         String?          @db.VarChar(10) @map("hora_inicio")
+  horaFinEstimada    String?          @db.VarChar(10) @map("hora_fin_estimada")
+  impacto            String?          @db.VarChar(50) @map("impacto")
+  riesgo             String?          @db.VarChar(50) @map("riesgo")
+  usuariosAfectados  Int?             @map("usuarios_afectados")
+  planTrabajo        String?          @db.Text @map("plan_trabajo")
+  planPruebas        String?          @db.Text @map("plan_pruebas")
+  planReversa        String?          @db.Text @map("plan_reversa")
+  resultadoFinal     String?          @db.Text @map("resultado_final")
+  createdAt          DateTime?        @default(now()) @db.Timestamp() @map("created_at")
+  updatedAt          DateTime?        @updatedAt @db.Timestamp() @map("updated_at")
+
+  ticket             Ticket           @relation(fields: [idTicket], references: [idTicket])
+  aprobaciones       CrqAprobacion[]
+
+  @@map("crq_detalle")
+}
+
+model CrqAprobacion {
+  idAprobacion     Int       @id @default(autoincrement()) @map("id_aprobacion")
+  idCrq            Int       @map("id_crq")
+  idAprobador      Int       @map("id_aprobador")
+  estadoAprobacion String    @db.VarChar(50) @map("estado_aprobacion") // PENDIENTE, APROBADO, RECHAZADO
+  comentario       String?   @db.Text @map("comentario")
+  fechaAprobacion  DateTime? @db.Timestamp() @map("fecha_aprobacion")
+
+  crq              CrqDetalle @relation(fields: [idCrq], references: [idCrq])
+  aprobador        Usuario   @relation(fields: [idAprobador], references: [idUsuario])
+
+  @@index([idCrq])
+  @@map("crq_aprobaciones")
+}
+
+// --------------------------------------------------------------
+// 7. NOTIFICACIONES Y ENCUESTAS (CSAT)
+// --------------------------------------------------------------
+
+model Notificacion {
+  idNotificacion Int       @id @default(autoincrement()) @map("id_notificacion")
+  idUsuario      Int       @map("id_usuario")
+  idTicket       Int?      @map("id_ticket")
+  titulo         String    @db.VarChar(180) @map("titulo")
+  mensaje        String    @db.Text @map("mensaje")
+  leida          Boolean?  @default(false) @map("leida")
+  fecha          DateTime  @default(now()) @db.Timestamp() @map("fecha")
+
+  usuario        Usuario   @relation(fields: [idUsuario], references: [idUsuario])
+  ticket         Ticket?   @relation(fields: [idTicket], references: [idTicket])
+
+  @@index([idUsuario, leida, fecha])
+  @@map("notificaciones")
+}
+
+model Encuesta {
+  idEncuesta   Int       @id @default(autoincrement()) @map("id_encuesta")
+  idTicket     Int       @unique @map("id_ticket")
+  idUsuario    Int       @map("id_usuario")
+  calificacion Int       @map("calificacion") // 1 a 5
+  comentario   String?   @db.Text @map("comentario")
+  fecha        DateTime? @default(now()) @db.Timestamp() @map("fecha")
+
+  ticket       Ticket    @relation(fields: [idTicket], references: [idTicket])
+  usuario      Usuario   @relation(fields: [idUsuario], references: [idUsuario])
+
+  @@map("encuestas")
+}
+
+// --------------------------------------------------------------
+// 8. GENERACIÓN ATÓMICA Y CONCURRENTE DE CÓDIGOS DE TICKET
+// --------------------------------------------------------------
+
+model SecuenciaTicket {
+  tipoTicket   String @db.VarChar(10) @map("tipo_ticket") // REQ, INC, CRQ
+  anio         Int    @map("anio")
+  ultimoNumero Int    @default(0) @map("ultimo_numero")
+
+  @@id([tipoTicket, anio])
+  @@map("secuencias_tickets")
+}

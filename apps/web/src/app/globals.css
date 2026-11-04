@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --undc-navy: #06285C;
+  --undc-deep: #001C45;
+  --undc-blue: #176BDA;
+  --undc-yellow: #FFD21E;
+  --undc-green: #009B60;
+  --undc-red: #E51C3B;
+  --undc-bg: #F4F7FB;
+  --undc-card: #FFFFFF;
+  --undc-text: #071B49;
+}
+
+body {
+  background-color: #F4F7FB;
+  color: #071B49;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Transiciones suaves en elementos interactivos */
+button, a, input, select, textarea {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow, transform, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
