@@ -10,10 +10,11 @@
 #   Build Path ............ /   (NO /apps/web: Dokploy lo antepone al campo Docker File)
 #   Docker File ........... /apps/web/Dockerfile
 #   Docker Context Path ... .   (obligatorio: vacío = contexto apps/web y el build se detiene)
-#   Environment -> Build Time Arguments:
-#       NEXT_PUBLIC_API_URL=https://<dominio-de-la-api>/api/v1
+#   NEXT_PUBLIC_API_URL ... URL pública de la API (termina en /api/v1). Por defecto se usa
+#       https://api-tidesk.episundc.pe/api/v1. Para cambiarla va en Environment ->
+#       Build-time Arguments (la tarjeta de abajo; Environment Settings es solo runtime).
 #       Next.js la incrusta en el JavaScript del navegador al compilar: si cambia,
-#       hay que volver a desplegar (no basta con reiniciar). Sin ella el build falla.
+#       hay que volver a desplegar (no basta con reiniciar).
 #   Domains ............... puerto del contenedor: 3000
 #   En la API, FRONTEND_URL debe ser la URL pública de esta aplicación (CORS).
 #
@@ -43,12 +44,14 @@ RUN npm ci --workspace=apps/web --no-audit --no-fund
 
 # --- build: next build con salida standalone ---
 FROM deps AS build
-ARG NEXT_PUBLIC_API_URL
+# URL pública de la API. Next.js la incrusta en el JavaScript del navegador al compilar.
+# Por defecto, la de producción de la UNDC; para otra, pasar el Build Time Argument.
+ARG NEXT_PUBLIC_API_URL=https://api-tidesk.episundc.pe/api/v1
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_OUTPUT=standalone \
     NEXT_TELEMETRY_DISABLED=1
 RUN test -n "${NEXT_PUBLIC_API_URL}" || { \
-      echo "ERROR: falta NEXT_PUBLIC_API_URL (Dokploy -> Environment -> Build Time Arguments)." >&2; \
+      echo "ERROR: NEXT_PUBLIC_API_URL esta vacia (Dokploy -> Environment -> Build-time Arguments)." >&2; \
       exit 1; }
 COPY apps/web apps/web
 WORKDIR /app/apps/web
