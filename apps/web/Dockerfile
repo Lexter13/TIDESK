@@ -7,9 +7,9 @@
 #
 # Dokploy -> Application -> Provider (Git) -> Build Type: Dockerfile
 #   Branch ................ main
-#   Build Path ............ /
-#   Dockerfile Path ....... apps/web/Dockerfile
-#   Docker Context Path ... .
+#   Build Path ............ /   (NO /apps/web: Dokploy lo antepone al campo Docker File)
+#   Docker File ........... /apps/web/Dockerfile
+#   Docker Context Path ... .   (obligatorio: vacío = contexto apps/web y el build se detiene)
 #   Environment -> Build Time Arguments:
 #       NEXT_PUBLIC_API_URL=https://<dominio-de-la-api>/api/v1
 #       Next.js la incrusta en el JavaScript del navegador al compilar: si cambia,
@@ -31,8 +31,14 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json package-lock.json ./
 # El lock describe los dos workspaces: `npm ci` necesita ambos manifiestos para validarlo.
-COPY apps/api/package.json apps/api/package.json
-COPY apps/web/package.json apps/web/package.json
+# Se copian con comodín (package.jso[n]) para que, si el contexto no es la raíz del repo,
+# el COPY no falle con un error críptico y el RUN siguiente explique qué hay que corregir.
+COPY apps/api/package.jso[n] apps/api/
+COPY apps/web/package.jso[n] apps/web/
+RUN test -f apps/api/package.json && test -f apps/web/package.json || { \
+      echo "ERROR: el contexto de build no es la raiz del repositorio (falta apps/api/package.json o apps/web/package.json)." >&2; \
+      echo "En Dokploy: Build Path '/', Docker File '/apps/web/Dockerfile' y Docker Context Path '.'." >&2; \
+      exit 1; }
 RUN npm ci --workspace=apps/web --no-audit --no-fund
 
 # --- build: next build con salida standalone ---
