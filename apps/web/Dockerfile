@@ -7,9 +7,10 @@
 #
 # Dokploy -> Application -> Provider (Git) -> Build Type: Dockerfile
 #   Branch ................ main
-#   Build Path ............ /   (NO /apps/web: Dokploy lo antepone al campo Docker File)
+#   Build Path ............ /apps/web
 #   Docker File ........... /apps/web/Dockerfile
 #   Docker Context Path ... .   (obligatorio: vacío = contexto apps/web y el build se detiene)
+#   Con estos valores Dokploy encuentra el Dockerfile y usa la raíz del repo como contexto.
 #   NEXT_PUBLIC_API_URL ... URL pública de la API (termina en /api/v1). Por defecto se usa
 #       https://api-tidesk.episundc.pe/api/v1. Para cambiarla va en Environment ->
 #       Build-time Arguments (la tarjeta de abajo; Environment Settings es solo runtime).
@@ -38,7 +39,7 @@ COPY apps/api/package.jso[n] apps/api/
 COPY apps/web/package.jso[n] apps/web/
 RUN test -f apps/api/package.json && test -f apps/web/package.json || { \
       echo "ERROR: el contexto de build no es la raiz del repositorio (falta apps/api/package.json o apps/web/package.json)." >&2; \
-      echo "En Dokploy: Build Path '/', Docker File '/apps/web/Dockerfile' y Docker Context Path '.'." >&2; \
+      echo "En Dokploy: 'Docker Context Path' debe ser '.' (la raiz del repositorio)." >&2; \
       exit 1; }
 RUN npm ci --workspace=apps/web --no-audit --no-fund
 

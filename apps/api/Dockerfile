@@ -7,9 +7,10 @@
 #
 # Dokploy -> Application -> Provider (Git) -> Build Type: Dockerfile
 #   Branch ................ main
-#   Build Path ............ /   (NO /apps/api: Dokploy lo antepone al campo Docker File)
+#   Build Path ............ /apps/api
 #   Docker File ........... /apps/api/Dockerfile
 #   Docker Context Path ... .   (obligatorio: vacío = contexto apps/api y el build se detiene)
+#   Con estos valores Dokploy encuentra el Dockerfile y usa la raíz del repo como contexto.
 #   Domains ............... puerto del contenedor: 4000
 #                           (API en /api/v1 · Swagger en /api/docs)
 #   Advanced -> Volumes ... volumen tidesk-uploads -> /app/apps/api/uploads
@@ -46,7 +47,7 @@ COPY apps/api/package.jso[n] apps/api/
 COPY apps/web/package.jso[n] apps/web/
 RUN test -f apps/api/package.json && test -f apps/web/package.json || { \
       echo "ERROR: el contexto de build no es la raiz del repositorio (falta apps/api/package.json o apps/web/package.json)." >&2; \
-      echo "En Dokploy: Build Path '/', Docker File '/apps/api/Dockerfile' y Docker Context Path '.'." >&2; \
+      echo "En Dokploy: 'Docker Context Path' debe ser '.' (la raiz del repositorio)." >&2; \
       exit 1; }
 RUN npm ci --workspace=apps/api --no-audit --no-fund
 
