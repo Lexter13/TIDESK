@@ -68,7 +68,14 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 20, required: false }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Transform)(({ value }) => {
+        if (value === '' || value === null || value === undefined)
+            return undefined;
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? value : Math.trunc(parsed);
+    }),
+    (0, class_validator_1.IsInt)({ message: 'La cantidad de usuarios afectados debe ser un número entero.' }),
+    (0, class_validator_1.Min)(0, { message: 'La cantidad de usuarios afectados no puede ser un número negativo.' }),
     __metadata("design:type", Number)
 ], CrqDetalleDto.prototype, "usuariosAfectados", void 0);
 __decorate([

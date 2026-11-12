@@ -14,6 +14,12 @@ import {
   X,
   Key,
   Shield,
+  Trash2,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  ShieldAlert,
+  Lock,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/auth-context';
@@ -34,6 +40,21 @@ export default function UsuariosPage() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [errorModal, setErrorModal] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Modal de Eliminación con Contraseña
+  const [deleteUserTarget, setDeleteUserTarget] = useState<any | null>(null);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [deleteUserError, setDeleteUserError] = useState<string | null>(null);
+
+  const esAdminGeneral = user?.rol === 'Administrador';
+
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setFeedback({ type, text });
+    setTimeout(() => setFeedback(null), 5000);
+  };
 
   // Campos de formulario
   const [formCodigo, setFormCodigo] = useState('');
@@ -76,10 +97,47 @@ export default function UsuariosPage() {
 
   const handleToggleStatus = async (id: number) => {
     try {
-      await api.users.toggleStatus(id);
+      const res = await api.users.toggleStatus(id);
+      showToast('success', res?.message || 'Estado de la cuenta actualizado.');
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Error al cambiar estado del usuario');
+      showToast('error', err.message || 'Error al cambiar estado del usuario');
+    }
+  };
+
+  const openDeleteUserModal = (u: any) => {
+    if (!esAdminGeneral) return;
+    setDeleteUserTarget(u);
+    setAdminPassword('');
+    setShowAdminPassword(false);
+    setDeleteUserError(null);
+  };
+
+  const handleConfirmDeleteUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deleteUserTarget || !esAdminGeneral) return;
+    setDeleteUserError(null);
+
+    if (!adminPassword.trim()) {
+      setDeleteUserError('Debe ingresar su contraseña actual para confirmar la eliminación.');
+      return;
+    }
+
+    try {
+      setDeletingUser(true);
+      const res = await api.users.delete(deleteUserTarget.idUsuario, adminPassword);
+      setDeleteUserTarget(null);
+      setAdminPassword('');
+      showToast(
+        'success',
+        res?.message ||
+          `Usuario ${deleteUserTarget.nombres} ${deleteUserTarget.apellidos} procesado correctamente.`,
+      );
+      await loadData();
+    } catch (err: any) {
+      setDeleteUserError(err.message || 'Contraseña incorrecta o no se pudo eliminar el usuario.');
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -176,6 +234,29 @@ export default function UsuariosPage() {
 
   return (
     <div className="space-y-6">
+      {/* Notificación Toast */}
+      {feedback && (
+        <div
+          className={`p-4 rounded-xl text-sm font-medium flex items-center justify-between border shadow-sm ${
+            feedback.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-red-50 text-red-800 border-red-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {feedback.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+            )}
+            <span>{feedback.text}</span>
+          </div>
+          <button onClick={() => setFeedback(null)} className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Encabezado Institucional */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex items-center gap-3">
@@ -190,13 +271,15 @@ export default function UsuariosPage() {
           </div>
         </div>
 
-        <button
-          onClick={openCrear}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#06285C] hover:bg-[#001C45] text-white rounded-xl text-xs font-bold shadow-md shadow-blue-900/10 transition active:scale-95"
-        >
-          <UserPlus className="w-4 h-4 text-[#FFD21E]" />
-          <span>+ Registrar Usuario</span>
-        </button>
+        {esAdminGeneral && (
+          <button
+            onClick={openCrear}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#06285C] hover:bg-[#001C45] text-white rounded-xl text-xs font-bold shadow-md shadow-blue-900/10 transition active:scale-95"
+          >
+            <UserPlus className="w-4 h-4 text-[#FFD21E]" />
+            <span>+ Registrar Usuario</span>
+          </button>
+        )}
       </div>
 
       {/* Barra de Filtros */}
@@ -261,17 +344,16 @@ export default function UsuariosPage() {
                     <td className="p-3 font-mono text-gray-600">{u.correo}</td>
                     <td className="p-3">
                       <span
-                        className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                          u.rol?.nombre === 'Administrador'
+                        className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${u.rol?.nombre === 'Administrador'
                             ? 'bg-purple-100 text-purple-800'
                             : u.rol?.nombre === 'Coordinador TI'
-                            ? 'bg-blue-100 text-[#06285C]'
-                            : u.rol?.nombre === 'Técnico TI'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
+                              ? 'bg-blue-100 text-[#06285C]'
+                              : u.rol?.nombre === 'Técnico TI'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-gray-100 text-gray-700'
+                          }`}
                       >
-                        {u.rol?.nombre}
+                        {u.rol?.nombre || 'Sin rol asignado'}
                       </span>
                     </td>
                     <td className="p-3 text-gray-600">
@@ -289,11 +371,10 @@ export default function UsuariosPage() {
                     </td>
                     <td className="p-3">
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                          u.estado
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${u.estado
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}
+                          }`}
                       >
                         {u.estado ? (
                           <>
@@ -307,25 +388,39 @@ export default function UsuariosPage() {
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => openEditar(u)}
-                          title="Editar cuenta"
-                          className="p-1 text-gray-500 hover:text-[#06285C] hover:bg-gray-100 rounded-lg transition"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(u.idUsuario)}
-                          className={`px-2.5 py-1 rounded-lg font-semibold text-[10px] transition ${
-                            u.estado
-                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-700'
-                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-                          }`}
-                        >
-                          {u.estado ? 'Desactivar' : 'Activar'}
-                        </button>
-                      </div>
+                      {esAdminGeneral ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => openEditar(u)}
+                            title="Editar cuenta"
+                            className="p-1 text-gray-500 hover:text-[#06285C] hover:bg-gray-100 rounded-lg transition"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleStatus(u.idUsuario)}
+                            className={`px-2.5 py-1 rounded-lg font-semibold text-[10px] transition ${
+                              u.estado
+                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-700'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                            }`}
+                          >
+                            {u.estado ? 'Desactivar' : 'Activar'}
+                          </button>
+                          {u.idUsuario !== user?.idUsuario && (
+                            <button
+                              onClick={() => openDeleteUserModal(u)}
+                              title="Eliminar usuario con confirmación de contraseña"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 hover:bg-red-600 text-red-700 hover:text-white rounded-lg font-semibold text-[10px] transition"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Eliminar</span>
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-400 italic">Solo consulta</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -562,6 +657,102 @@ export default function UsuariosPage() {
                   className="px-5 py-2 bg-[#06285C] hover:bg-[#001C45] text-white rounded-xl font-bold shadow-md shadow-blue-900/10 transition"
                 >
                   {guardando ? 'Guardando...' : isEditing ? 'Guardar Cambios' : 'Registrar Usuario'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN CON CONTRASEÑA PARA ELIMINAR USUARIO */}
+      {deleteUserTarget && esAdminGeneral && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-red-700 font-bold text-base">
+                <ShieldAlert className="w-5 h-5 text-red-600" />
+                <span>Confirmar Eliminación de Usuario</span>
+              </div>
+              <button
+                onClick={() => setDeleteUserTarget(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1.5">
+              <p className="font-semibold">
+                Está solicitando eliminar la cuenta institucional de:
+              </p>
+              <div className="bg-white/80 p-2.5 rounded-lg border border-amber-200/80 space-y-0.5">
+                <div className="font-bold text-sm text-[#06285C]">
+                  {deleteUserTarget.nombres} {deleteUserTarget.apellidos}
+                </div>
+                <div className="font-mono text-xs text-gray-600">
+                  Código: <strong>{deleteUserTarget.codigo || 'Sin código'}</strong> • Correo:{' '}
+                  {deleteUserTarget.correo}
+                </div>
+              </div>
+              <p className="text-[11px] text-amber-800 pt-1">
+                Si el usuario registra historial de tickets, comentarios o auditoría, el sistema desactivará su cuenta de forma segura conservando toda la trazabilidad histórica.
+              </p>
+            </div>
+
+            {deleteUserError && (
+              <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{deleteUserError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmDeleteUser} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-[#06285C]" />
+                  <span>Contraseña actual del Administrador</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showAdminPassword ? 'text' : 'password'}
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Ingrese su contraseña de inicio de sesión..."
+                    className="w-full p-2.5 pr-10 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-600"
+                    autoFocus
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700"
+                    title={showAdminPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  >
+                    {showAdminPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setDeleteUserTarget(null)}
+                  className="px-4 py-2 border border-gray-200 rounded-xl font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingUser}
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{deletingUser ? 'Verificando...' : 'Confirmar Eliminación'}</span>
                 </button>
               </div>
             </form>

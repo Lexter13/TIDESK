@@ -1,6 +1,7 @@
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ConfirmPasswordDto } from '../catalogs/dto/catalog-operations.dto';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
@@ -161,6 +162,12 @@ export declare class UsersController {
     toggleStatus(id: number): Promise<{
         idUsuario: number;
         estado: boolean;
+        message: string;
+    }>;
+    deleteUser(id: number, adminId: number, dto: ConfirmPasswordDto): Promise<{
+        idUsuario: number;
+        deleted: boolean;
+        deactivated: boolean;
         message: string;
     }>;
 }

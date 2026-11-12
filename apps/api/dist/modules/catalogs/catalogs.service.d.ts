@@ -1,4 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { CreateSedeDto, CreateAreaDto, CreateCategoriaDto, CreateSubcategoriaDto, CreateServicioDto } from './dto/catalog-operations.dto';
 export declare class CatalogsService {
     private prisma;
     constructor(prisma: PrismaService);
@@ -99,6 +100,30 @@ export declare class CatalogsService {
             descripcion: string | null;
             idServicio: number;
         })[];
+        politicasSla: ({
+            tipoTicket: {
+                estado: boolean | null;
+                codigo: string;
+                nombre: string;
+                descripcion: string | null;
+                idTipoTicket: number;
+            };
+            prioridad: {
+                estado: boolean | null;
+                nombre: string;
+                descripcion: string | null;
+                idPrioridad: number;
+                nivel: number;
+            };
+        } & {
+            estado: boolean | null;
+            nombre: string;
+            idTipoTicket: number | null;
+            idPrioridad: number;
+            idSla: number;
+            tiempoPrimeraRespuestaMin: number;
+            tiempoResolucionMin: number;
+        })[];
     }>;
     getSedes(): Promise<{
         estado: boolean | null;
@@ -168,4 +193,71 @@ export declare class CatalogsService {
         apellidos: string;
         idArea: number;
     }[]>;
+    createSede(dto: CreateSedeDto): Promise<{
+        estado: boolean | null;
+        idSede: number;
+        createdAt: Date | null;
+        nombre: string;
+        direccion: string | null;
+    }>;
+    deleteSede(id: number, adminId: number, password: string): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
+    createArea(dto: CreateAreaDto): Promise<{
+        estado: boolean | null;
+        idArea: number;
+        createdAt: Date | null;
+        nombre: string;
+        descripcion: string | null;
+    }>;
+    deleteArea(id: number, adminId: number, password: string): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
+    createCategoria(dto: CreateCategoriaDto): Promise<{
+        estado: boolean | null;
+        nombre: string;
+        descripcion: string | null;
+        idCategoria: number;
+    }>;
+    deleteCategoria(id: number, adminId: number, password: string): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
+    createSubcategoria(dto: CreateSubcategoriaDto): Promise<{
+        estado: boolean | null;
+        nombre: string;
+        descripcion: string | null;
+        idCategoria: number;
+        idSubcategoria: number;
+    }>;
+    deleteSubcategoria(id: number, adminId: number, password: string): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
+    createServicio(dto: CreateServicioDto): Promise<{
+        area: {
+            estado: boolean | null;
+            idArea: number;
+            createdAt: Date | null;
+            nombre: string;
+            descripcion: string | null;
+        };
+    } & {
+        estado: boolean | null;
+        idArea: number;
+        nombre: string;
+        descripcion: string | null;
+        idServicio: number;
+    }>;
+    deleteServicio(id: number, adminId: number, password: string): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
 }

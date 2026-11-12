@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Body,
   Param,
@@ -12,6 +13,7 @@ import { SlaService } from './sla.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CreateSlaPolicyDto, UpdateSlaPolicyDto } from './dto/sla-policy.dto';
 
 @ApiTags('SLA')
 @ApiBearerAuth()
@@ -26,13 +28,21 @@ export class SlaController {
     return this.slaService.getPolicies();
   }
 
+  @Post('policies')
+  @UseGuards(RolesGuard)
+  @Roles('Administrador', 'Coordinador TI')
+  @ApiOperation({ summary: 'Crear una nueva política SLA vinculada a una prioridad' })
+  async createPolicy(@Body() data: CreateSlaPolicyDto) {
+    return this.slaService.createPolicy(data);
+  }
+
   @Patch('policies/:id')
   @UseGuards(RolesGuard)
   @Roles('Administrador', 'Coordinador TI')
   @ApiOperation({ summary: 'Actualizar tiempos y parámetros de una política SLA' })
   async updatePolicy(
     @Param('id', ParseIntPipe) id: number,
-    @Body() data: any,
+    @Body() data: UpdateSlaPolicyDto,
   ) {
     return this.slaService.updatePolicy(id, data);
   }

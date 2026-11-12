@@ -94,7 +94,10 @@ let TicketsService = class TicketsService {
                         horaFinEstimada: dto.crqDetalle.horaFinEstimada,
                         impacto: dto.crqDetalle.impacto?.substring(0, 50),
                         riesgo: dto.crqDetalle.riesgo?.substring(0, 50),
-                        usuariosAfectados: dto.crqDetalle.usuariosAfectados,
+                        usuariosAfectados: dto.crqDetalle.usuariosAfectados !== undefined &&
+                            dto.crqDetalle.usuariosAfectados !== null
+                            ? Number(dto.crqDetalle.usuariosAfectados)
+                            : null,
                         planTrabajo: dto.crqDetalle.planTrabajo,
                         planPruebas: dto.crqDetalle.planPruebas,
                         planReversa: dto.crqDetalle.planReversa,
@@ -124,13 +127,22 @@ let TicketsService = class TicketsService {
                     fecha: new Date(),
                 },
             });
-            const slaPolitica = await tx.politicaSla.findFirst({
+            let slaPolitica = await tx.politicaSla.findFirst({
                 where: {
                     idPrioridad: dto.idPrioridad,
                     OR: [{ idTipoTicket: dto.idTipoTicket }, { idTipoTicket: null }],
                     estado: true,
                 },
+                orderBy: { idTipoTicket: 'asc' },
             });
+            if (!slaPolitica) {
+                slaPolitica = await tx.politicaSla.findFirst({
+                    where: {
+                        idPrioridad: dto.idPrioridad,
+                        estado: true,
+                    },
+                });
+            }
             if (slaPolitica) {
                 const ahora = new Date();
                 const limiteRespuesta = new Date(ahora.getTime() + slaPolitica.tiempoPrimeraRespuestaMin * 60000);

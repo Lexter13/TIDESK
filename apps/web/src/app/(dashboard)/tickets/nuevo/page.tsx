@@ -66,7 +66,7 @@ function NuevoTicketContent() {
   const [crqHoraFinEstimada, setCrqHoraFinEstimada] = useState('23:00');
   const [crqImpacto, setCrqImpacto] = useState('Medio');
   const [crqRiesgo, setCrqRiesgo] = useState('Bajo');
-  const [crqUsuariosAfectados, setCrqUsuariosAfectados] = useState('Comunidad Universitaria UNDC');
+  const [crqUsuariosAfectados, setCrqUsuariosAfectados] = useState('20');
   const [crqPlanTrabajo, setCrqPlanTrabajo] = useState('');
   const [crqPlanPruebas, setCrqPlanPruebas] = useState('');
   const [crqPlanReversa, setCrqPlanReversa] = useState('');
@@ -205,6 +205,17 @@ function NuevoTicketContent() {
       if (idServicio) payload.idServicio = Number(idServicio);
 
       if (esCRQ) {
+        let parsedUsuariosAfectados: number | undefined = undefined;
+        if (crqUsuariosAfectados !== '' && crqUsuariosAfectados !== null && crqUsuariosAfectados !== undefined) {
+          const numVal = Number(crqUsuariosAfectados);
+          if (Number.isNaN(numVal) || !Number.isInteger(numVal) || numVal < 0) {
+            setError('La cantidad de usuarios afectados debe ser un número entero mayor o igual a 0.');
+            setSubmitting(false);
+            return;
+          }
+          parsedUsuariosAfectados = numVal;
+        }
+
         payload.crqDetalle = {
           tipoTrabajo: crqTipoTrabajo,
           motivo: crqMotivo.trim() || titulo.trim(),
@@ -214,7 +225,7 @@ function NuevoTicketContent() {
           horaFinEstimada: crqHoraFinEstimada,
           impacto: crqImpacto,
           riesgo: crqRiesgo,
-          usuariosAfectados: crqUsuariosAfectados,
+          usuariosAfectados: parsedUsuariosAfectados,
           planTrabajo: crqPlanTrabajo || 'Ejecución del procedimiento técnico conforme a la ventana programada.',
           planPruebas: crqPlanPruebas || 'Validación de servicios críticos y conectividad en campus.',
           planReversa: crqPlanReversa || 'Restauración del estado previo o rollback de configuración.',
@@ -508,6 +519,28 @@ function NuevoTicketContent() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {catalogs?.prioridades?.map((p: any) => {
                 const isSelected = idPrioridad === p.idPrioridad;
+                const matchedSla =
+                  catalogs?.politicasSla?.find(
+                    (pol: any) =>
+                      pol.idPrioridad === p.idPrioridad && pol.idTipoTicket === idTipoTicket,
+                  ) ||
+                  catalogs?.politicasSla?.find((pol: any) => pol.idPrioridad === p.idPrioridad);
+
+                const formatMin = (m: number) =>
+                  m >= 60 ? `${Number((m / 60).toFixed(1))}h` : `${m}m`;
+
+                const slaText = matchedSla
+                  ? `Resp: ${formatMin(matchedSla.tiempoPrimeraRespuestaMin)} • Res: ${formatMin(
+                      matchedSla.tiempoResolucionMin,
+                    )}`
+                  : p.nombre === 'Crítica'
+                  ? 'Resp: 15m • Res: 2h'
+                  : p.nombre === 'Alta'
+                  ? 'Resp: 30m • Res: 4h'
+                  : p.nombre === 'Media'
+                  ? 'Resp: 1h • Res: 8h'
+                  : 'Resp: 2h • Res: 24h';
+
                 return (
                   <button
                     key={p.idPrioridad}
@@ -520,15 +553,7 @@ function NuevoTicketContent() {
                     }`}
                   >
                     <div className="font-bold text-xs text-gray-800">{p.nombre}</div>
-                    <div className="text-[10px] text-gray-500 mt-1">
-                      {p.nombre === 'Crítica'
-                        ? 'Resp: 15m • Res: 2h'
-                        : p.nombre === 'Alta'
-                        ? 'Resp: 30m • Res: 4h'
-                        : p.nombre === 'Media'
-                        ? 'Resp: 1h • Res: 8h'
-                        : 'Resp: 2h • Res: 24h'}
-                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">{slaText}</div>
                   </button>
                 );
               })}
@@ -737,12 +762,16 @@ function NuevoTicketContent() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-purple-900 mb-1">Comunidad Afectada</label>
+                <label className="block text-xs font-semibold text-purple-900 mb-1">
+                  Usuarios Afectados (Cantidad estimada)
+                </label>
                 <input
-                  type="text"
+                  type="number"
+                  min={0}
+                  step={1}
                   value={crqUsuariosAfectados}
                   onChange={(e) => setCrqUsuariosAfectados(e.target.value)}
-                  placeholder="Ej. Pabellón B, Sede San Luis, Toda la UNDC"
+                  placeholder="Ej. 20, 150, 500"
                   className="w-full py-2 px-3 text-xs border border-purple-200 rounded-xl bg-white"
                 />
               </div>

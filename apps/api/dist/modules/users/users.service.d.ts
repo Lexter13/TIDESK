@@ -171,4 +171,10 @@ export declare class UsersService {
         estado: boolean;
         message: string;
     }>;
+    deleteUser(targetId: number, adminId: number, password: string): Promise<{
+        idUsuario: number;
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
 }

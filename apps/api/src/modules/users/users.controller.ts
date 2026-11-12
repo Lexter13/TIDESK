@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -13,6 +14,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ConfirmPasswordDto } from '../catalogs/dto/catalog-operations.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -73,5 +75,16 @@ export class UsersController {
   @ApiOperation({ summary: 'Activar o desactivar cuenta de usuario' })
   async toggleStatus(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.toggleStatus(id);
+  }
+
+  @Delete(':id')
+  @Roles('Administrador')
+  @ApiOperation({ summary: 'Eliminar cuenta de usuario con confirmación de contraseña (Solo Administrador General)' })
+  async deleteUser(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('idUsuario') adminId: number,
+    @Body() dto: ConfirmPasswordDto,
+  ) {
+    return this.usersService.deleteUser(id, adminId, dto.password);
   }
 }

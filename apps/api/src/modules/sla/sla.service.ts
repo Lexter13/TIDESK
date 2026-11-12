@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CreateSlaPolicyDto, UpdateSlaPolicyDto } from './dto/sla-policy.dto';
 
 @Injectable()
 export class SlaService {
@@ -84,8 +85,34 @@ export class SlaService {
   }
 
   async getPolicies() {
+    // Asegurar que la prioridad Baja (nivel 4) cuente con su política institucional vinculada en PostgreSQL
+    const prioBaja = await this.prisma.prioridad.findFirst({
+      where: {
+        OR: [{ idPrioridad: 4 }, { nombre: { equals: 'Baja', mode: 'insensitive' } }],
+      },
+    });
+
+    if (prioBaja) {
+      const hasBajaPolicy = await this.prisma.politicaSla.findFirst({
+        where: { idPrioridad: prioBaja.idPrioridad },
+      });
+      if (!hasBajaPolicy) {
+        const tipoReq = await this.prisma.tipoTicket.findFirst({ where: { codigo: 'REQ' } });
+        await this.prisma.politicaSla.create({
+          data: {
+            idTipoTicket: tipoReq ? tipoReq.idTipoTicket : null,
+            idPrioridad: prioBaja.idPrioridad,
+            nombre: 'Atención de Baja Prioridad',
+            tiempoPrimeraRespuestaMin: 120,
+            tiempoResolucionMin: 1440,
+            estado: true,
+          },
+        });
+      }
+    }
+
     return this.prisma.politicaSla.findMany({
-      orderBy: { idPrioridad: 'desc' },
+      orderBy: [{ prioridad: { nivel: 'asc' } }, { idSla: 'asc' }],
       include: {
         prioridad: true,
         tipoTicket: true,
@@ -93,15 +120,56 @@ export class SlaService {
     });
   }
 
-  async updatePolicy(id: number, data: any) {
+  async createPolicy(data: CreateSlaPolicyDto) {
+    const prio = await this.prisma.prioridad.findUnique({
+      where: { idPrioridad: Number(data.idPrioridad) },
+    });
+    if (!prio) {
+      throw new NotFoundException('La prioridad seleccionada no existe.');
+    }
+
+    return this.prisma.politicaSla.create({
+      data: {
+        nombre: data.nombre.trim(),
+        idPrioridad: Number(data.idPrioridad),
+        idTipoTicket: data.idTipoTicket ? Number(data.idTipoTicket) : null,
+        tiempoPrimeraRespuestaMin: Number(data.tiempoPrimeraRespuestaMin),
+        tiempoResolucionMin: Number(data.tiempoResolucionMin),
+        estado: true,
+      },
+      include: {
+        prioridad: true,
+        tipoTicket: true,
+      },
+    });
+  }
+
+  async updatePolicy(id: number, data: UpdateSlaPolicyDto) {
     const existing = await this.prisma.politicaSla.findUnique({ where: { idSla: id } });
     if (!existing) throw new NotFoundException('Política SLA no encontrada.');
+
+    if (data.idPrioridad !== undefined) {
+      const prio = await this.prisma.prioridad.findUnique({
+        where: { idPrioridad: Number(data.idPrioridad) },
+      });
+      if (!prio) {
+        throw new NotFoundException('La prioridad seleccionada no existe.');
+      }
+    }
 
     return this.prisma.politicaSla.update({
       where: { idSla: id },
       data: {
-        nombre: data.nombre ?? existing.nombre,
-        tiempoPrimeraRespuestaMin: data.tiempoPrimeraRespuestaMin ?? existing.tiempoPrimeraRespuestaMin,
+        nombre: data.nombre !== undefined ? data.nombre.trim() : existing.nombre,
+        idPrioridad: data.idPrioridad !== undefined ? Number(data.idPrioridad) : existing.idPrioridad,
+        idTipoTicket:
+          data.idTipoTicket !== undefined
+            ? data.idTipoTicket
+              ? Number(data.idTipoTicket)
+              : null
+            : existing.idTipoTicket,
+        tiempoPrimeraRespuestaMin:
+          data.tiempoPrimeraRespuestaMin ?? existing.tiempoPrimeraRespuestaMin,
         tiempoResolucionMin: data.tiempoResolucionMin ?? existing.tiempoResolucionMin,
         estado: data.estado ?? existing.estado,
       },

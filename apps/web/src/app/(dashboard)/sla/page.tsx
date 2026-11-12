@@ -10,13 +10,10 @@ import {
   Edit2,
   Save,
   X,
-  Sparkles,
-  Info,
+  Plus,
   RefreshCw,
   Activity,
-  Layers,
   Eye,
-  Calendar,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/auth-context';
@@ -24,12 +21,19 @@ import { useAuth } from '@/context/auth-context';
 function SlaContent() {
   const { user } = useAuth();
   const [policies, setPolicies] = useState<any[]>([]);
+  const [catalogs, setCatalogs] = useState<any>(null);
   const [metrics, setMetrics] = useState<any>(null);
   const [activeTickets, setActiveTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal de creación / edición de política
+  const [modalPolicyOpen, setModalPolicyOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<any | null>(null);
-  const [tiempoRespuesta, setTiempoRespuesta] = useState<number>(0);
-  const [tiempoResolucion, setTiempoResolucion] = useState<number>(0);
+  const [nombrePolitica, setNombrePolitica] = useState('');
+  const [idPrioridad, setIdPrioridad] = useState<number>(4);
+  const [idTipoTicket, setIdTipoTicket] = useState<number | ''>('');
+  const [tiempoRespuesta, setTiempoRespuesta] = useState<number>(120);
+  const [tiempoResolucion, setTiempoResolucion] = useState<number>(1440);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -38,14 +42,16 @@ function SlaContent() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [pol, met, tickRes] = await Promise.all([
+      const [pol, met, tickRes, catRes] = await Promise.all([
         api.sla.getPolicies(),
         api.sla.getMetrics(),
         api.tickets.getAll({ limit: 10 }),
+        api.catalogs.getAll(),
       ]);
       setPolicies(pol || []);
       setMetrics(met || null);
       setActiveTickets(tickRes.items || []);
+      setCatalogs(catRes || null);
     } catch (err) {
       console.error('Error cargando SLA:', err);
     } finally {
@@ -57,36 +63,65 @@ function SlaContent() {
     loadData();
   }, []);
 
+  const handleOpenCreate = () => {
+    setEditingPolicy(null);
+    const bajaPrio = catalogs?.prioridades?.find((p: any) => p.nombre === 'Baja');
+    setIdPrioridad(bajaPrio ? bajaPrio.idPrioridad : catalogs?.prioridades?.[0]?.idPrioridad || 4);
+    setIdTipoTicket('');
+    setNombrePolitica('');
+    setTiempoRespuesta(120);
+    setTiempoResolucion(1440);
+    setModalPolicyOpen(true);
+  };
+
   const handleEditClick = (p: any) => {
     setEditingPolicy(p);
+    setNombrePolitica(p.nombre || '');
+    setIdPrioridad(p.idPrioridad);
+    setIdTipoTicket(p.idTipoTicket || '');
     setTiempoRespuesta(p.tiempoPrimeraRespuestaMin);
     setTiempoResolucion(p.tiempoResolucionMin);
+    setModalPolicyOpen(true);
   };
 
   const handleSavePolicy = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingPolicy) return;
 
     try {
       setSaving(true);
-      await api.sla.updatePolicy(editingPolicy.idSla, {
+      const payload = {
+        nombre: nombrePolitica.trim(),
+        idPrioridad: Number(idPrioridad),
+        idTipoTicket: idTipoTicket ? Number(idTipoTicket) : null,
         tiempoPrimeraRespuestaMin: Number(tiempoRespuesta),
         tiempoResolucionMin: Number(tiempoResolucion),
-      });
+      };
+
+      if (editingPolicy) {
+        await api.sla.updatePolicy(editingPolicy.idSla, payload);
+        setFeedback({
+          type: 'success',
+          text: `Política SLA "${payload.nombre}" actualizada satisfactoriamente.`,
+        });
+      } else {
+        await api.sla.createPolicy(payload);
+        setFeedback({
+          type: 'success',
+          text: `Nueva política SLA "${payload.nombre}" registrada satisfactoriamente.`,
+        });
+      }
+
+      setModalPolicyOpen(false);
       setEditingPolicy(null);
-      setFeedback({
-        type: 'success',
-        text: `Política SLA "${editingPolicy.nombre}" actualizada satisfactoriamente.`,
-      });
       await loadData();
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        text: err.message || 'Error al actualizar política SLA.',
+        text: err.message || 'Error al guardar la política SLA.',
       });
     } finally {
       setSaving(false);
-      setTimeout(() => setFeedback(null), 4000);
+      setTimeout(() => setFeedback(null), 4500);
     }
   };
 
@@ -131,13 +166,24 @@ function SlaContent() {
           </div>
         </div>
 
-        <button
-          onClick={() => loadData()}
-          className="p-2.5 text-gray-600 hover:text-[#06285C] bg-gray-50 hover:bg-gray-100 rounded-xl transition self-start sm:self-auto"
-          title="Refrescar métricas de SLA"
-        >
-          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-[#06285C]' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <button
+            onClick={() => loadData()}
+            className="p-2.5 text-gray-600 hover:text-[#06285C] bg-gray-50 hover:bg-gray-100 rounded-xl transition"
+            title="Refrescar métricas de SLA"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-[#06285C]' : ''}`} />
+          </button>
+          {esAdmin && (
+            <button
+              onClick={handleOpenCreate}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#06285C] hover:bg-[#001C45] text-white rounded-xl text-xs font-bold shadow-sm transition"
+            >
+              <Plus className="w-4 h-4 text-[#FFD21E]" />
+              <span>Nueva Política SLA</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Métricas de Cumplimiento Global (Datos Reales de Base de Datos) */}
@@ -219,6 +265,7 @@ function SlaContent() {
                 <tr className="bg-gray-50/75 border-b text-gray-600 font-semibold">
                   <th className="p-3.5">Prioridad</th>
                   <th className="p-3.5">Nombre de la Política</th>
+                  <th className="p-3.5">Tipo Ticket</th>
                   <th className="p-3.5">Primera Respuesta Máx.</th>
                   <th className="p-3.5">Resolución Máx.</th>
                   <th className="p-3.5">Estado</th>
@@ -244,6 +291,9 @@ function SlaContent() {
                       </span>
                     </td>
                     <td className="p-3.5 font-medium text-gray-800">{p.nombre}</td>
+                    <td className="p-3.5 text-gray-600 whitespace-nowrap">
+                      {p.tipoTicket ? `${p.tipoTicket.codigo} - ${p.tipoTicket.nombre}` : 'General (Todos)'}
+                    </td>
                     <td className="p-3.5 text-gray-700 font-mono whitespace-nowrap">
                       {p.tiempoPrimeraRespuestaMin} min ({p.tiempoPrimeraRespuestaMin >= 60 ? `${(p.tiempoPrimeraRespuestaMin / 60).toFixed(1)} h` : `${p.tiempoPrimeraRespuestaMin} m`})
                     </td>
@@ -345,15 +395,20 @@ function SlaContent() {
         </div>
       </div>
 
-      {/* MODAL DE EDICIÓN DE POLÍTICA */}
-      {editingPolicy && (
+      {/* MODAL DE CREACIÓN / EDICIÓN DE POLÍTICA SLA */}
+      {modalPolicyOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b pb-2">
               <h3 className="font-bold text-[#06285C] text-sm">
-                Modificar SLA: {editingPolicy.nombre}
+                {editingPolicy
+                  ? `Modificar Política SLA: ${editingPolicy.nombre}`
+                  : 'Crear Nueva Política SLA'}
               </h3>
-              <button onClick={() => setEditingPolicy(null)} className="text-gray-400 hover:text-gray-600">
+              <button
+                onClick={() => setModalPolicyOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -361,11 +416,64 @@ function SlaContent() {
             <form onSubmit={handleSavePolicy} className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-gray-700 mb-1">
-                  Tiempo de Primera Respuesta (minutos)
+                  Nombre de la Política <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nombrePolitica}
+                  onChange={(e) => setNombrePolitica(e.target.value)}
+                  placeholder="Ej. Atención de Baja Prioridad"
+                  maxLength={120}
+                  className="w-full p-2.5 border border-gray-200 rounded-xl bg-white"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">
+                    Prioridad Vinculada <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={idPrioridad}
+                    onChange={(e) => setIdPrioridad(Number(e.target.value))}
+                    className="w-full p-2.5 border border-gray-200 rounded-xl bg-white"
+                    required
+                  >
+                    {catalogs?.prioridades?.map((prio: any) => (
+                      <option key={prio.idPrioridad} value={prio.idPrioridad}>
+                        {prio.nombre} (Nivel {prio.nivel})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">
+                    Tipo de Ticket (Opcional)
+                  </label>
+                  <select
+                    value={idTipoTicket}
+                    onChange={(e) => setIdTipoTicket(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full p-2.5 border border-gray-200 rounded-xl bg-white"
+                  >
+                    <option value="">General (Todos)</option>
+                    {catalogs?.tiposTicket?.map((tipo: any) => (
+                      <option key={tipo.idTipoTicket} value={tipo.idTipoTicket}>
+                        {tipo.codigo} - {tipo.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Tiempo de Primera Respuesta (minutos) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
-                  min="5"
+                  min="1"
                   max="1440"
                   value={tiempoRespuesta}
                   onChange={(e) => setTiempoRespuesta(Number(e.target.value))}
@@ -379,11 +487,11 @@ function SlaContent() {
 
               <div>
                 <label className="block font-semibold text-gray-700 mb-1">
-                  Tiempo de Resolución Máxima (minutos)
+                  Tiempo de Resolución Máxima (minutos) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
-                  min="15"
+                  min="5"
                   max="10080"
                   value={tiempoResolucion}
                   onChange={(e) => setTiempoResolucion(Number(e.target.value))}
@@ -395,10 +503,10 @@ function SlaContent() {
                 </span>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3">
+              <div className="flex justify-end gap-2 pt-3 border-t">
                 <button
                   type="button"
-                  onClick={() => setEditingPolicy(null)}
+                  onClick={() => setModalPolicyOpen(false)}
                   className="px-4 py-2 border rounded-xl font-medium"
                 >
                   Cancelar
@@ -409,7 +517,7 @@ function SlaContent() {
                   className="px-4 py-2 bg-[#06285C] text-white rounded-xl font-bold flex items-center gap-1.5"
                 >
                   <Save className="w-3.5 h-3.5 text-[#FFD21E]" />
-                  <span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
+                  <span>{saving ? 'Guardando...' : 'Guardar Política'}</span>
                 </button>
               </div>
             </form>

@@ -1,9 +1,15 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { buildUserProfile } from '../../common/helpers/profile-builder.helper';
+import { verifyAdminPassword } from '../../common/helpers/password-verifier.helper';
 
 @Injectable()
 export class UsersService {
@@ -203,6 +209,77 @@ export class UsersService {
       idUsuario: updated.idUsuario,
       estado: updated.estado,
       message: `El usuario ahora se encuentra ${updated.estado ? 'activo' : 'inactivo'}.`,
+    };
+  }
+
+  async deleteUser(targetId: number, adminId: number, password: string) {
+    if (targetId === adminId) {
+      throw new BadRequestException(
+        'Por seguridad institucional, no puede eliminar ni desactivar su propia cuenta de Administrador en sesión.',
+      );
+    }
+
+    await verifyAdminPassword(this.prisma, adminId, password);
+
+    const targetUser = await this.prisma.usuario.findUnique({
+      where: { idUsuario: targetId },
+      include: {
+        rol: true,
+        _count: {
+          select: {
+            ticketsSolicitados: true,
+            asignacionesRecibidas: true,
+            asignacionesRealizadas: true,
+            comentarios: true,
+            adjuntos: true,
+            historial: true,
+            crqAprobaciones: true,
+            notificaciones: true,
+            encuestas: true,
+          },
+        },
+      },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException(`El usuario con ID ${targetId} no existe.`);
+    }
+
+    const c = targetUser._count;
+    const activityRecordsCount =
+      c.ticketsSolicitados +
+      c.asignacionesRecibidas +
+      c.asignacionesRealizadas +
+      c.comentarios +
+      c.adjuntos +
+      c.historial +
+      c.crqAprobaciones +
+      c.encuestas;
+
+    if (activityRecordsCount > 0) {
+      await this.prisma.usuario.update({
+        where: { idUsuario: targetId },
+        data: { estado: false },
+      });
+
+      return {
+        idUsuario: targetId,
+        deleted: false,
+        deactivated: true,
+        message: `El usuario ${targetUser.nombres} ${targetUser.apellidos} (${targetUser.codigo || targetUser.correo}) registra actividad histórica en el sistema (${c.ticketsSolicitados} tickets solicitados, ${c.asignacionesRecibidas} asignaciones, ${c.historial} eventos de auditoría). Por integridad referencial ITIL, su cuenta ha sido desactivada de forma segura preservando toda la trazabilidad.`,
+      };
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.notificacion.deleteMany({ where: { idUsuario: targetId } }),
+      this.prisma.usuario.delete({ where: { idUsuario: targetId } }),
+    ]);
+
+    return {
+      idUsuario: targetId,
+      deleted: true,
+      deactivated: false,
+      message: `La cuenta del usuario ${targetUser.nombres} ${targetUser.apellidos} (${targetUser.codigo || targetUser.correo}) ha sido eliminada definitivamente del sistema.`,
     };
   }
 }

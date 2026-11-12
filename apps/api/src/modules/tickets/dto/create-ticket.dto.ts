@@ -5,9 +5,10 @@ import {
   IsOptional,
   MaxLength,
   MinLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CrqDetalleDto {
@@ -54,7 +55,13 @@ export class CrqDetalleDto {
 
   @ApiProperty({ example: 20, required: false })
   @IsOptional()
-  @IsInt()
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return undefined;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? value : Math.trunc(parsed);
+  })
+  @IsInt({ message: 'La cantidad de usuarios afectados debe ser un número entero.' })
+  @Min(0, { message: 'La cantidad de usuarios afectados no puede ser un número negativo.' })
   usuariosAfectados?: number;
 
   @ApiProperty({ example: '1. Notificar. 2. Backup. 3. Aplicar parches.', required: false })

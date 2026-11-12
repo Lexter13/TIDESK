@@ -518,6 +518,20 @@ async function main() {
     },
   });
 
+  await prisma.politicaSla.upsert({
+    where: { idSla: 4 },
+    update: {},
+    create: {
+      idSla: 4,
+      idTipoTicket: tipoReq.idTipoTicket,
+      idPrioridad: prioBaja.idPrioridad,
+      nombre: 'Atención de Baja Prioridad',
+      tiempoPrimeraRespuestaMin: 120,
+      tiempoResolucionMin: 1440, // 24 horas
+      estado: true,
+    },
+  });
+
   // 12. Usuarios del Sistema con contraseñas Argon2id
   const passAdmin = await argon2.hash('Admin2026!');
   const passCoord = await argon2.hash('Coord2026!');

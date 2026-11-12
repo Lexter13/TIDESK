@@ -1,4 +1,5 @@
 import { CatalogsService } from './catalogs.service';
+import { CreateSedeDto, CreateAreaDto, CreateCategoriaDto, CreateSubcategoriaDto, CreateServicioDto, ConfirmPasswordDto } from './dto/catalog-operations.dto';
 export declare class CatalogsController {
     private readonly catalogsService;
     constructor(catalogsService: CatalogsService);
@@ -99,6 +100,30 @@ export declare class CatalogsController {
             descripcion: string | null;
             idServicio: number;
         })[];
+        politicasSla: ({
+            tipoTicket: {
+                estado: boolean | null;
+                codigo: string;
+                nombre: string;
+                descripcion: string | null;
+                idTipoTicket: number;
+            };
+            prioridad: {
+                estado: boolean | null;
+                nombre: string;
+                descripcion: string | null;
+                idPrioridad: number;
+                nivel: number;
+            };
+        } & {
+            estado: boolean | null;
+            nombre: string;
+            idTipoTicket: number | null;
+            idPrioridad: number;
+            idSla: number;
+            tiempoPrimeraRespuestaMin: number;
+            tiempoResolucionMin: number;
+        })[];
     }>;
     getSedes(): Promise<{
         estado: boolean | null;
@@ -107,6 +132,18 @@ export declare class CatalogsController {
         nombre: string;
         direccion: string | null;
     }[]>;
+    createSede(dto: CreateSedeDto): Promise<{
+        estado: boolean | null;
+        idSede: number;
+        createdAt: Date | null;
+        nombre: string;
+        direccion: string | null;
+    }>;
+    deleteSede(id: number, adminId: number, dto: ConfirmPasswordDto): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
     getAreas(): Promise<{
         estado: boolean | null;
         idArea: number;
@@ -114,6 +151,18 @@ export declare class CatalogsController {
         nombre: string;
         descripcion: string | null;
     }[]>;
+    createArea(dto: CreateAreaDto): Promise<{
+        estado: boolean | null;
+        idArea: number;
+        createdAt: Date | null;
+        nombre: string;
+        descripcion: string | null;
+    }>;
+    deleteArea(id: number, adminId: number, dto: ConfirmPasswordDto): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
     getTiposTicket(): Promise<{
         estado: boolean | null;
         codigo: string;
@@ -148,6 +197,29 @@ export declare class CatalogsController {
         descripcion: string | null;
         idCategoria: number;
     })[]>;
+    createCategoria(dto: CreateCategoriaDto): Promise<{
+        estado: boolean | null;
+        nombre: string;
+        descripcion: string | null;
+        idCategoria: number;
+    }>;
+    deleteCategoria(id: number, adminId: number, dto: ConfirmPasswordDto): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
+    createSubcategoria(dto: CreateSubcategoriaDto): Promise<{
+        estado: boolean | null;
+        nombre: string;
+        descripcion: string | null;
+        idCategoria: number;
+        idSubcategoria: number;
+    }>;
+    deleteSubcategoria(id: number, adminId: number, dto: ConfirmPasswordDto): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
     getServicios(idArea?: number): Promise<{
         estado: boolean | null;
         idArea: number;
@@ -155,6 +227,26 @@ export declare class CatalogsController {
         descripcion: string | null;
         idServicio: number;
     }[]>;
+    createServicio(dto: CreateServicioDto): Promise<{
+        area: {
+            estado: boolean | null;
+            idArea: number;
+            createdAt: Date | null;
+            nombre: string;
+            descripcion: string | null;
+        };
+    } & {
+        estado: boolean | null;
+        idArea: number;
+        nombre: string;
+        descripcion: string | null;
+        idServicio: number;
+    }>;
+    deleteServicio(id: number, adminId: number, dto: ConfirmPasswordDto): Promise<{
+        deleted: boolean;
+        deactivated: boolean;
+        message: string;
+    }>;
     getEspecialistas(idArea?: number): Promise<{
         area: {
             nombre: string;

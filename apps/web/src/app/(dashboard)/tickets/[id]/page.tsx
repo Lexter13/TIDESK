@@ -632,7 +632,7 @@ function TicketDetalleContent() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
                     <div>
                       <span className="text-gray-500 block">Fecha Programada:</span>
                       <span className="font-semibold text-gray-800">
@@ -654,6 +654,12 @@ function TicketDetalleContent() {
                     <div>
                       <span className="text-gray-500 block">Riesgo:</span>
                       <span className="font-semibold text-gray-800">{ticket.crqDetalle.riesgo}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">Usuarios Afectados:</span>
+                      <span className="font-semibold text-gray-800">
+                        {ticket.crqDetalle.usuariosAfectados ?? 'No especificado'}
+                      </span>
                     </div>
                   </div>
 

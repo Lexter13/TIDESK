@@ -119,9 +119,9 @@ export declare class TicketsController {
                 };
             } & {
                 idTicket: number;
+                idSla: number;
                 fechaLimiteResolucion: Date | null;
                 idTicketSla: number;
-                idSla: number;
                 fechaLimiteRespuesta: Date | null;
                 fechaRespuestaReal: Date | null;
                 fechaResolucionReal: Date | null;
@@ -237,9 +237,9 @@ export declare class TicketsController {
             };
         } & {
             idTicket: number;
+            idSla: number;
             fechaLimiteResolucion: Date | null;
             idTicketSla: number;
-            idSla: number;
             fechaLimiteRespuesta: Date | null;
             fechaRespuestaReal: Date | null;
             fechaResolucionReal: Date | null;

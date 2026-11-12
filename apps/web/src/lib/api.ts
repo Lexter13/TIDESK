@@ -180,13 +180,63 @@ export const api = {
   catalogs: {
     getAll: () => request<any>('/catalogs'),
     getSedes: () => request<any[]>('/catalogs/sedes'),
+    createSede: (data: { nombre: string; direccion?: string }) =>
+      request<any>('/catalogs/sedes', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    deleteSede: (id: number, password: string) =>
+      request<any>(`/catalogs/sedes/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password }),
+      }),
     getAreas: () => request<any[]>('/catalogs/areas'),
+    createArea: (data: { nombre: string; descripcion?: string }) =>
+      request<any>('/catalogs/areas', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    deleteArea: (id: number, password: string) =>
+      request<any>(`/catalogs/areas/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password }),
+      }),
     getTipos: () => request<any[]>('/catalogs/tipos-ticket'),
     getPrioridades: () => request<any[]>('/catalogs/prioridades'),
     getEstados: () => request<any[]>('/catalogs/estados'),
     getCategorias: () => request<any[]>('/catalogs/categorias'),
+    createCategoria: (data: { nombre: string; descripcion?: string }) =>
+      request<any>('/catalogs/categorias', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    deleteCategoria: (id: number, password: string) =>
+      request<any>(`/catalogs/categorias/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password }),
+      }),
+    createSubcategoria: (data: { idCategoria: number; nombre: string; descripcion?: string }) =>
+      request<any>('/catalogs/subcategorias', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    deleteSubcategoria: (id: number, password: string) =>
+      request<any>(`/catalogs/subcategorias/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password }),
+      }),
     getServicios: (idArea?: number) =>
       request<any[]>(`/catalogs/servicios${idArea ? `?idArea=${idArea}` : ''}`),
+    createServicio: (data: { idArea: number; nombre: string; descripcion?: string }) =>
+      request<any>('/catalogs/servicios', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    deleteServicio: (id: number, password: string) =>
+      request<any>(`/catalogs/servicios/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password }),
+      }),
     getEspecialistas: (idArea?: number) =>
       request<any[]>(`/catalogs/especialistas${idArea ? `?idArea=${idArea}` : ''}`),
   },
@@ -207,7 +257,12 @@ export const api = {
   // Usuarios
   users: {
     getAll: (params: Record<string, any> = {}) => {
-      const qs = new URLSearchParams(params).toString();
+      // Omitir filtros vacíos: URLSearchParams serializa undefined como el texto "undefined",
+      // lo que el backend interpretaría como un término de búsqueda real.
+      const cleanParams = Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+      );
+      const qs = new URLSearchParams(cleanParams).toString();
       return request<{ items: any[]; total: number; page: number; totalPages: number }>(
         `/users${qs ? `?${qs}` : ''}`,
       );
@@ -228,11 +283,21 @@ export const api = {
       request<any>(`/users/${id}/toggle-status`, {
         method: 'PATCH',
       }),
+    delete: (id: number, password: string) =>
+      request<any>(`/users/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password }),
+      }),
   },
 
   // SLA
   sla: {
     getPolicies: () => request<any[]>('/sla/policies'),
+    createPolicy: (data: any) =>
+      request<any>('/sla/policies', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     updatePolicy: (id: number, data: any) =>
       request<any>(`/sla/policies/${id}`, {
         method: 'PATCH',
