@@ -1,0 +1,37 @@
+# ==============================================================
+# TIDESK - archivos que NO entran al contexto de build de Docker.
+# El contexto es la raíz del repositorio; lo comparten apps/api/Dockerfile
+# y apps/web/Dockerfile.
+# ==============================================================
+
+# Control de versiones y editores
+.git
+.gitattributes
+.gitignore
+.vscode
+.idea
+
+# Dependencias y compilaciones: se regeneran dentro de la imagen
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/*.tsbuildinfo
+**/*.log
+
+# Secretos y configuración local: nunca deben entrar a una imagen
+**/.env
+**/.env.*
+
+# Adjuntos subidos durante el desarrollo
+**/uploads
+
+# Herramientas de IA, documentación y pruebas: no se usan para construir
+**/.claude
+**/.agents
+**/.cursor
+**/.devin
+**/*.md
+docs
+references
+apps/api/test
